@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>集群槽迁移</title>
+    <meta name="keywords" content="index">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <link rel="icon" type="image/png" href="assets/i/favicon.png">
+    <link rel="apple-touch-icon-precomposed" href="assets/i/app-icon72x72@2x.png">
+    <meta name="apple-mobile-web-app-title" content="Amaze UI" />
+    <link rel="stylesheet" href="assets/css/amazeui.min.css" />
+    <link rel="stylesheet" href="assets/css/admin.css">
+    <link rel="stylesheet" href="assets/css/app.css">
+    <style type="text/css">
+    .tpl-content-wrapper{
+            padding-left: 0px;
+            padding-left: 50px;
+            padding-right: 50px;
+    }
+    .slotsList li{
+        margin-top: 10px;
+
+    }
+    </style>
+</head>
+
+<body data-type="generalComponents">
+
+
+
+ <div class="tpl-content-wrapper">
+
+            <div class="tpl-portlet-components">
+                <div class="portlet-title">
+                    <div class="caption font-green bold">
+                        <span class="am-icon-code"></span>槽分配
+                    </div>
+                    <div class="tpl-portlet-input tpl-fz-ml">
+
+                    </div>
+
+
+                </div>
+                <div     class="am-u-sm-9 am-u-sm-push-3" >
+                                     <div class="am-g">
+                    <div class="am-u-sm-4">
+                             <section class="am-panel am-panel-primary">
+                              <header class="am-panel-hd">
+                                <h3 class="am-panel-title">节点A</h3>
+                              </header>
+                              <div class="am-panel-bd">
+                         
+                                    <ul >
+                                        <li>ip：</li>
+                                        <li>端口号：</li>
+
+                                        <li>槽位：</li>
+                                    </ul>
+
+
+                              </div>
+                            </section>
+                    </div>
+                    <div class="am-u-sm-4">
+
+                        <section class="am-panel am-panel-primary">
+                                  <header class="am-panel-hd">
+                                    <h3 class="am-panel-title">节点B</h3>
+                                  </header>
+                                  <div class="am-panel-bd">
+                                    <ul >
+                                        <li>ip：</li>
+                                        <li>端口号：</li>
+
+                                        <li>槽位：</li>
+                                    </ul>
+
+
+
+                                </div>
+                        </section>
+                    </div>
+                    <div class="am-u-sm-4">
+                        
+                    </div>
+                </div>
+
+
+                </div>
+                <div class="am-u-sm-9 am-u-sm-push-6">   
+                    <button type="button"  class="am-btn am-btn-primary tpl-btn-bg-color-success " id="addSlotBtn">添加</button>
+
+                </div>
+
+                <div class="tpl-block" style="min-height: 600px;">
+                    <div class="am-g">
+                      <div class="">
+                          <div class="tpl-form-body tpl-form-line">
+                            <form class="am-form-inline">
+                                <ul id="slotsList" class="slotsList">
+                                    
+                                    <li class="slotsList-item">
+                                        <div class="am-form-group">
+                                            <small>from节点:</small>                                         
+                                    
+                                            <select class="migrating_node" data-am-selected="{dropUp: 1}" >
+                                              <option value="b">Banana</option>
+                                              <option value="o">Orange</option>
+                                            </select>
+
+                                        </div>
+
+                                        <div class="am-form-group">
+                                            <label class="am-u-sm-3 am-form-label">起</label>
+                                            <input type="number" class="am-form-field" placeholder="槽">
+                                        </div>
+
+                                        <div class="am-form-group">
+                                            <label class="am-u-sm-3 am-form-label">至</label>
+                                            <input type="number" class="am-form-field" placeholder="槽">
+                                        </div>
+                                        <small>迁移到</small>                                         
+
+                                        <label  class="am-form-label importing_node">节点B</label>
+
+
+                                    </li>
+
+                                </ul>
+
+
+
+
+                            </form>
+
+                        </div>
+
+
+                      </div>
+                    </div>
+                    <div class="am-u-sm-9 am-u-sm-push-2">
+                        
+                    </div>
+                </div>
+                <div class="am-u-sm-9 am-u-sm-push-3">
+                    <button type="button" class="am-btn am-btn-primary tpl-btn-bg-color-success " id="testBtn"  >检测结果</button>
+                    
+                    <button type="button"  class="am-btn am-btn-primary tpl-btn-bg-color-success " id="submitBtn">提交</button>
+                </div>
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+        </div>
+
+
+    </div>
+
+
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/amazeui.min.js"></script>
+    <script src="assets/js/app.js"></script>
+
+
+        <!-- 客户编辑模板 -->
+    <script id="add-slot-tmpl"  type="text/x-dot-template">
+            <li class="slotsList-item">
+                <div class="am-form-group">
+                    <small>from节点:</small>                                         
+            
+                    <select class="migrating_node" data-am-selected="{dropUp: 1}" >
+                      <option value="b">Banana</option>
+                      <option value="o">Orange</option>
+                    </select>
+
+                </div>
+
+                <div class="am-form-group">
+                    <label class="am-u-sm-3 am-form-label">起</label>
+                    <input type="number" class="am-form-field" placeholder="槽">
+                </div>
+
+                <div class="am-form-group">
+                    <label class="am-u-sm-3 am-form-label">至</label>
+                    <input type="number" class="am-form-field" placeholder="槽">
+                </div>
+                <small>迁移到</small>                                         
+
+                <label  class="am-form-label importing_node">节点B</label>
+
+
+            </li>
+
+    </script>
+
+    <script type="text/javascript">
+    $('#addSlotBtn').on('click' , function(){
+
+
+
+        var temp = $('#add-slot-tmpl').html();
+        $('#slotsList').append(temp);
+
+        // 使用默认参数
+        $('select').selected();
+
+    });
+    $('#submitBtn').on('click' , function(){
+        alert('提交');
+
+
+        $('input').prop('readonly','readonly');
+    });
+
+    $('#testBtn').on('click' , function(){
+        alert('检测结果');
+
+
+    });
+
+
+    $('.migrating_node').on('change' , function(){
+        var importing_node = $(this).parents('.slotsList-item').find('.importing_node');
+        $(importing_node).html('我是节点哎哎哎');
+        alert('结果变化');
+
+    });
+
+
+    //转换成提交状态
+    function changeToSubmitState(){
+
+    }
+
+
+
+    </script>
+</body>
+
+</html>

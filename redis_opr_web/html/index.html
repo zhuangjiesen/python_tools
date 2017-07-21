@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>我是redis首页</title>
+    {% include 'baseHeader.html' %}
+    <style>
+        body{
+            padding: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+<h1>hello redis opr</h1>
+
+
+<button onclick="openDialog(this);"
+  type="button"
+  class="am-btn am-btn-primary"
+  >
+  Modal
+</button>
+
+    <div class="am-panel am-panel-default">
+
+    </div>
+
+
+
+
+</body>
+    {% include 'baseFooter.html' %}
+    <script>
+
+    
+
+
+    $.get(  '{{ contextPath }}/redis/getAppRedisList.do', function(data){
+        var grid_temp = doT.template($("#j-tmpl").text());
+        if (data.success) {
+            $("#interpolation").html(grid_temp(data.result));
+        }
+        alert(data);
+    });
+
+
+    function openDialog(item) {
+{#        http://127.0.0.1:8000/redis/toAppForm.do#}
+        console.log('open dialog....')
+         options = {
+            id : 'doc-modal-1',
+
+            url : '{{ contextPath }}/redis/toAppForm.do' ,
+            closeViaDimmer: 0,
+            width: 640,
+            height: 420
+        }
+        modelDialog = new ModalDialog(options);
+        modelDialog.show()
+
+{#        data-am-modal="{target: '#doc-modal-1', closeViaDimmer: 0, width: 400, height: 225}"#}
+
+    }
+
+
+
+
+
+
+
+
+    </script>
+
+</html>

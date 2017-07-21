@@ -1,0 +1,19 @@
+body{
+    padding-top: 75px;
+    padding-right: 30px;
+
+}
+
+.icontent{
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0;
+    z-index: 0;
+}
+.tpl-left-nav-hover{
+    z-index: 99;
+    position: absolute; 
+
+}
