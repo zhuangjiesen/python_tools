@@ -1,0 +1,19 @@
+url：
+http://127.0.0.1:8888/redisOpr/toClusterIndex.do
+
+页面目录：
+redis_opr_web\html\oprpage\html\redisCluster
+
+前端框架
+boostrap , boostapTable
+
+集群操作后台接口：
+redis_opr_web\redis_opr_web\controller\redisOpr.py 
+
+
+redis操作脚本：
+如果不用django平台，用python脚本也可以独自操作
+redis_opr_web\redis_opr_web\core
+redis_opr_web\redis_opr_web\service
+
+

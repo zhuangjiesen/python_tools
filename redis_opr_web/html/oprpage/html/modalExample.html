@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+	<title>无标题</title>
+
+<link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="../css/bootstrap-theme.min.css">
+<script src="../js/jquery-1.12.0.js"  ></script>
+
+<script src="../js/bootstrap.min.js"  ></script>
+<script src="../js/dragsun-plugins.js"  ></script>
+
+<style type="text/css">
+body{
+	padding: 10px;
+}
+
+</style>
+</head>
+<body>
+<h1>Boostrap 项目测试</h1>
+
+
+<h3>模态框</h3>
+<button id="modelBtn">打开模态框</button>
+<button id="modelClosedBtn">关闭模态框</button>
+
+
+<div id="layer" style="height: 300px;width: 300px;background: darkgrey;">
+    <h4>遮罩区域</h4>
+
+</div>
+
+
+<!-- Large modal -->
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modelTmp">Large modal</button>
+
+
+
+<script type="text/template" id="modalTemplate" >
+    <h4>模态框中的文本XXXXXXXXXXXXXXXX</h4>
+    <p>我是模态框的内容哈哈哈哈哈</p>
+</script>
+
+
+</body>
+<script type="text/javascript">
+
+var modal = null;
+$('#modelBtn').on('click' , function(){
+
+    var html = $('#modalTemplate').html();
+	modal = $('#modelTmp').dragsun_modal({
+	    'title' : '我是模态框标题' ,
+        'html' : html ,
+        'width' : '400px',
+        'height' : '500px' ,
+        'saveButton' : function () {
+            alert(2222);
+
+            modal.close();
+        } ,
+        'cancelButton' : function () {
+            alert(2222);
+        } ,
+//        'containerId' : 'layer',
+    })
+
+
+
+});
+
+$('#modelClosedBtn').on('click' , function(){
+
+    setTimeout(function () {
+        modal.close();
+    } , 300)
+
+});
+
+
+function createModel(){
+
+}
+
+
+
+</script>
+</html>

@@ -1,0 +1,101 @@
+
+<!-- 槽位分配模态框-->
+<div class="modal fade" id="allocUnassignedModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="exampleModalLabel"><font style="font-weight: 900;" id="allocNodeNameFont"></font> 槽位分配</h4>
+      </div>
+      <div class="modal-body">
+        <div>
+            <h4>未分配槽位:<strong id="allocUnssignedSlotsInfo"></strong></h4>
+        </div>
+        <form id="allocSlotsModalForm">
+            <input type="hidden" name="allocNodeName" >
+
+            <div class="form-group">
+                <label for="recipient-name" class="control-label">Slot From:</label>
+                <input type="number"  class="form-control" value="10000" name="allocSlotFrom" >
+            </div>
+            <div class="form-group">
+                <label for="recipient-name" class="control-label">Slot To:</label>
+                <input type="number" class="form-control"  value="10000"  name="allocSlotTo" >
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" id="allocSlotsModalSbmBtn" class="btn btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 自动槽位分配模态框-->
+<div class="modal fade" id="autoAssignedModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="exampleModalLabel">自动分配槽位</h4>
+      </div>
+      <div class="modal-body">
+            <h4>选中节点:</h4>
+            <ul class="list-group" id="autoAssignedUnssignedSlotsInfoNodesList">
+            </ul>
+        <h3>提交后先清空槽位后，随机平均分配槽位到选中节点</h3>
+        <input type="hidden" id="autoAssignedUnssignedSlotsInfoNodesNames" name="autoAssignedUnssignedSlotsInfoNodesNames">
+        <input type="hidden" id="autoAssignedUnssignedSlotsInfoValue" name="autoAssignedUnssignedSlotsInfoValue">
+        <input type="hidden" id="autoAssignedUnssignedSlotsInfoCountValue" name="autoAssignedUnssignedSlotsInfoCountValue">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" id="autoAssignedSlotsModalSbmBtn"  class="btn btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 槽位迁移模态框-->
+<div class="modal fade" id="migrateSlotsModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="exampleModalLabel"><font style="font-weight: 900;" id="migrateFromNodeName"></font> 槽位迁移</h4>
+      </div>
+      <div class="modal-body">
+        <div>
+            <h4>槽位:<strong id="migrateSlotFromNodeSlotsInfo"></strong></h4>
+        </div>
+        <form id="migrateSlotsModalForm">
+            <input type="hidden" name="migrateFromNodeId" >
+            <input type="hidden" name="migrateFromNodeName" >
+
+            <div class="form-group">
+                <label for="recipient-name" class="control-label">Slot From:</label>
+                <input type="number"  class="form-control" value="10000" name="migrateSlotFrom" >
+            </div>
+            <div class="form-group">
+                <label for="recipient-name" class="control-label">Slot To:</label>
+                <input type="number" class="form-control"  value="10000"  name="migrateSlotTo" >
+            </div>
+            <div class="form-group">
+                <label for="recipient-name" class="control-label">Node Id To:</label>
+                <select  class="form-control"  id="migrateToNodeName" name="migrateToNodeName">
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="message-text" class="control-label">Migrate Key Delay(MS):</label>
+                <input type="text" class="form-control"  value="50"  name="migratetoKeyDelay"   >
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" id="migrateSlotsModalSbmBtn" class="btn btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+</div>

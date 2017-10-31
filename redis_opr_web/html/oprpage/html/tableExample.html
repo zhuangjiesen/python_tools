@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+	<title>无标题</title>
+
+<link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="../css/bootstrap-theme.min.css">
+<link rel="stylesheet" type="text/css" href="../css/bootstrap-table.min.css">
+
+<script src="../js/jquery-1.12.0.js"  ></script>
+<script src="../js/bootstrap.min.js"  ></script>
+<!-- Latest compiled and minified CSS -->
+<script src="../js/bootstrap-table.min.js"  ></script>
+<script src="../js/bootstrap-table-zh-CN.min.js"  ></script>
+<script src="../js/dragsun-plugins.js"  ></script>
+
+
+<style type="text/css">
+body{
+	padding: 10px;
+}
+
+</style>
+</head>
+<body>
+<h3>表单</h3>
+<div class="row base-margin" id="query">
+    <ol class="breadcrumb">
+        <li><strong><span style="color: #27a0d7">用户列表</span></strong></li>
+    </ol>
+    <form class="form-inline" role="form" style="float: left; width: 100%" method="post" id="queryForm">
+        <div class="form-group">
+            <label for="orgCode">部门:</label>
+            <select class="form-control" id="orgCode" name="orgCode">
+                <option value="">默认选择</option>
+                <c:forEach var="data" items="${orgList}">
+                    <option value="${data.orgCode }">${data.orgName }</option>
+                </c:forEach>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="userName">名称:</label>
+            <input type="text" class="form-control" name="userName" id="userName"  placeholder="请输入名称">
+        </div>
+        <div class="form-group">
+            <label >日期:</label>
+            <input placeholder="开始日期" class="form-control layer-date" id="startDate" name="startDate">
+            <input placeholder="结束日期" class="form-control layer-date" id="endDate" name="endDate">
+        </div>
+        <div class="form-group">
+            <button type="button" id="queryBtn" onclick="doQuery();" class="btn btn-primary">查询</button>
+        </div>
+        <div class="form-group btn-right">
+            <button type="button" class="btn btn-primary" id="addBtn"  >新增用户</button>
+        </div>
+    </form>
+</div>
+<table id="table"></table>
+
+</body>
+<script type="text/javascript">
+    var url = "http://10.11.165.101:8000/test/boostrapTable.do";
+    $('#table').bootstrapTable({
+        method:'POST',
+        dataType:'json',
+        cache: false,
+        sidePagination: "server",           //分页方式：client客户端分页，server服务端分页（*）
+        url:url,
+        height: '300',
+//        width:$(window).width(),
+        pagination:true,
+        singleSelect : true,
+        clickToSelect : true,
+        selectItemName : 'id',
+        queryParams : {'name' : 'zhuangjiesen'} ,
+        pageNumber : 1 ,                       //初始化加载第一页，默认第一页
+        pageSize : 20,                       //每页的记录行数（*）
+        pageList : [10, 25, 50, 100],        //可供选择的每页的行数（*）
+        uniqueId : "id",                     //每一行的唯一标识，一般为主键列
+        responseHandler: function (res) {
+            return res;
+        },
+        columns: [{
+            checkbox: true
+        },
+            {
+                field : 'id',
+                title : 'User ID',
+                align : 'center',
+                valign : 'middle',
+                sortable : true,
+                formatter : function (value, row, index){
+                    return value;
+                }
+            }, {
+                field : 'institutionName',
+                title : 'Institution Name',
+                align : 'center',
+                valign : 'middle'
+            }, {
+                field : 'loginId',
+                title : 'Login Name',
+                align : 'center',
+                valign : 'middle',
+            }, {
+                field : 'realName',
+                title : 'Real Name',
+                align : 'center',
+                valign : 'middle'
+            },  {
+                field : 'homeAddress',
+                title : 'Address',
+                align : 'center',
+                valign : 'middle'
+            }]
+    });
+
+$('#addBtn').on('click' , function(){
+    var html = $('#modalTemplate').html();
+    modal = $('#modelTmp').dragsun_modal({
+        'title' : '我是模态框标题' ,
+//        'html' : html ,
+        'url' : './example.html' ,
+        'width' : '400px',
+        'height' : '500px' ,
+        'saveButton' : function () {
+            alert(2222);
+
+            modal.close();
+        } ,
+        'cancelButton' : function () {
+            alert(2222);
+        } ,
+//        'containerId' : 'layer',
+    })
+
+
+});
+
+$('#modelClosedBtn').on('click' , function(){
+
+
+});
+
+function createModel(){
+
+}
+
+
+
+</script>
+</html>

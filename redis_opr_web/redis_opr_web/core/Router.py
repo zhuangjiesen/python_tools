@@ -10,13 +10,16 @@ import json
 用来路由请求，请求分发
 '''
 
-
 '''
+controller 文件名与url 映射名称一致
+
+
 参数说明
 prefix 请求过滤 处理请求的 py 文件名 
 AppRoute 每个请求的类
 route 每个处理请求 py 中的 route 方法 
 appRouteInst AppRoute类的实例
+
 '''
 def route(request , prefix , AppRoute ,route , appRouteInst ):
     attr_dict = AppRoute.__dict__;

@@ -1,9 +1,39 @@
-import redis  
-
+import redis
+from redis.exceptions import ResponseError
+from .. import utils
 
 from .RedisClient import Redis_client
 # 普通方法返回值
 from ...core.Common import CommonMethodResult
+from . import RedisClient
+
+# 通过一个节点获取整个集群得客户端连接
+def getRedisClientListByOneNode(host , port , requirepass ):
+	commonMethodResult = CommonMethodResult();
+	one_node_redis_client = RedisClient.createRedisConn(host , port , requirepass);
+	if one_node_redis_client.success:
+		print(' 服务 ', host, ':', str(port), ' msg : ', one_node_redis_client.msg)
+	else:
+		commonMethodResult.success = False;
+		msg = ' 服务 ' + host + ':' + str(port) + ' msg : ' + one_node_redis_client.msg;
+		commonMethodResult.msg = msg;
+		print(msg)
+		return commonMethodResult;
+	clusterNodes = getClusterNodes(one_node_redis_client);
+	# 大于一个节点
+	clientList = [];
+	if clusterNodes and len(clusterNodes) > 1:
+		for clusterNodesItem in clusterNodes :
+			mHost = clusterNodesItem['host'];
+			mPort = clusterNodesItem['port'];
+			new_redis_client = RedisClient.createRedisConn(mHost, mPort, requirepass);
+			clientList.append(new_redis_client);
+	commonMethodResult.result = {};
+	commonMethodResult.result['redis_client_list'] = clientList;
+	commonMethodResult.success = True;
+	return commonMethodResult;
+
+
 
 
 # 是否支持集群
@@ -100,6 +130,24 @@ def getClusterNodesInternal(redis_client , role  ):
 	for node in clusternodes :
 		newNode = {};
 		newNode['name'] = node;
+
+		name = '';
+		host = '';
+		port = 0;
+		name = node;
+		atIndex = name.find('@');
+		if  atIndex > -1 :
+			name = node[0 : atIndex];
+		maohaoIndex = name.find(':');
+		if  maohaoIndex > -1 :
+			names = name.split(':');
+			host = names[0];
+			port = names[1];
+
+		# print ('host : %s port :%s  ' %( host ,str(port) ))
+		newNode['host'] = host;
+		newNode['port'] = port;
+
 		newNode['value'] = clusternodes[node];
 		value = clusternodes[node];
 		newNode['node_id'] = value['node_id'];
@@ -370,7 +418,7 @@ def spareRandomSlotsToEmptyClusterNodes(nodes):
 	clusernodes_result = isNodesInCluster(nodes)
 	masterList = [];
 	# 所有节点都在集群中
-	if clusernodes_result['success'] :
+	if clusernodes_result.success :
 		limitSlots = 16384
 		# 选出master
 		for node_item in nodes :
@@ -389,32 +437,39 @@ def spareRandomSlotsToEmptyClusterNodes(nodes):
 			cluster_slots_assigned = clusterinfo['cluster_slots_assigned'];
 			# 还未分配槽位
 			if int(cluster_slots_assigned) == 0 :
-				# 平均分配的槽位
-				average_slots_to_add = int(limitSlots / master_node_size);
-				assigned_slots_list = [];
-				last_to_slots = 0;
-				for i in range( 0 , master_node_size) :
-					assigned_slots = {};
-					if i == 0 :
-						assigned_slots['from_slots'] = 0 ;
-						assigned_slots['to_slots'] = average_slots_to_add;
-						last_to_slots = assigned_slots['to_slots'];
-					elif i == (master_node_size - 1):
-						assigned_slots['from_slots'] = last_to_slots + 1 ;
-						assigned_slots['to_slots'] = limitSlots - 1 ;
-					else :
-						assigned_slots['from_slots'] = last_to_slots + 1 ;
-						assigned_slots['to_slots'] = last_to_slots + 1 + average_slots_to_add;
-						last_to_slots = assigned_slots['to_slots'];
-					assigned_slots_list.append(assigned_slots);
+				# 只有一个槽位
+				if master_node_size == 1:
+					from_slots = 0
+					to_slots = 16383
+					for sls in range(from_slots, to_slots + 1):
+						addSlots(masterList[0] , sls);
+				else:
+					# 平均分配的槽位
+					average_slots_to_add = int(limitSlots / master_node_size);
+					assigned_slots_list = [];
+					last_to_slots = 0;
+					for i in range( 0 , master_node_size) :
+						assigned_slots = {};
+						if i == 0 :
+							assigned_slots['from_slots'] = 0 ;
+							assigned_slots['to_slots'] = average_slots_to_add;
+							last_to_slots = assigned_slots['to_slots'];
+						elif i == (master_node_size - 1):
+							assigned_slots['from_slots'] = last_to_slots + 1 ;
+							assigned_slots['to_slots'] = limitSlots - 1 ;
+						else :
+							assigned_slots['from_slots'] = last_to_slots + 1 ;
+							assigned_slots['to_slots'] = last_to_slots + 1 + average_slots_to_add;
+							last_to_slots = assigned_slots['to_slots'];
+						assigned_slots_list.append(assigned_slots);
 
-				for i in range( 0 , len(masterList)) :
-					master_node = masterList[i];
-					assigned_slots = assigned_slots_list[i];
-					from_slots = assigned_slots['from_slots']
-					to_slots = assigned_slots['to_slots']
-					for sls in range(from_slots , to_slots + 1 ):
-						addSlots(master_node , sls );
+					for i in range( 0 , len(masterList)) :
+						master_node = masterList[i];
+						assigned_slots = assigned_slots_list[i];
+						from_slots = assigned_slots['from_slots']
+						to_slots = assigned_slots['to_slots']
+						for sls in range(from_slots , to_slots + 1 ):
+							addSlots(master_node , sls );
 				return True;
 			else :
 				return '已经分配过'
@@ -424,6 +479,33 @@ def spareRandomSlotsToEmptyClusterNodes(nodes):
 	else:
 		print ('不在集群中')
 		return None;
+
+
+
+
+
+
+def delSlots(from_rs ,slots ):
+	# 先从原节点处删除
+	delresult = from_rs.redisClient.cluster('delslots', slots);
+	allResult = False;
+	if delresult:
+		allResult = True;
+	result = getRedisClientListByOneNode(from_rs.host , from_rs.port , from_rs.pwd);
+	if result.success :
+		redis_client_list = result.result['redis_client_list'] ;
+		for redis_client in redis_client_list :
+			# 删除其他节点的槽位
+			if not from_rs.name == redis_client.name :
+				delresult = redis_client.redisClient.cluster('delslots', slots);
+				if delresult:
+					allResult = True;
+		if not allResult :
+			return False;
+		else:
+			return True;
+	else:
+		return result;
 
 
 def addSlots(master_node_rs , slots):
@@ -445,8 +527,9 @@ def cluster_setslot_importing(taget_rs , slot , node_id):
 def cluster_setslot_migrating(taget_rs , slot  , node_id):
 	return cluster_setslot(taget_rs , "MIGRATING" , slot  , node_id );
 
-def cluster_setslot_stable(taget_rs , slot , node_id):
-	return cluster_setslot(taget_rs  , "STABLE" ,slot , node_id );
+def cluster_setslot_stable(taget_rs , slot ):
+	result = taget_rs.redisClient.cluster('SETSLOT' , slot , "STABLE" );
+	return result;
 
 # 通知节点 slot槽位由 node_id 管理
 def cluster_setslot_node(taget_rs , slot , node_id):
@@ -476,7 +559,7 @@ def migrate_slots_to_new_node( from_rs , to_rs , slot):
 	nodes.append(from_rs)
 	nodes.append(to_rs)
 	isInCluster = isNodesInCluster(nodes)
-	if isInCluster['success'] :
+	if isInCluster.success :
 		#同一集群
 		clusterInfo = getClusterInfo(from_rs);
 		#判断集群状态
@@ -512,6 +595,15 @@ def migrate_slots_to_new_node( from_rs , to_rs , slot):
 						set_requirepass_result = to_rs.redisClient.config_set('requirepass' , '');
 						mig_result = cluster_migrate_keys_to_server(from_rs , to_host , to_port , *to_migrate_keys);
 						# 密码改回来
+					except ResponseError as e :
+						exception = str(e);
+						# 把状态变回
+						cluster_setslot_stable(from_rs , slot  );
+						cluster_setslot_stable(to_rs , slot  );
+						print(' ResponseError : ' , exception);
+						result['msg'] =  exception;
+						result['success'] = False;
+						return result;
 					finally:
 						reset_pass = to_rs.redisClient.config_set('requirepass' , to_node_requirepass['requirepass']);
 						to_migrate_keys = clusterNode_getkeysinslot(from_rs , slot ,migrate_count );
@@ -588,4 +680,143 @@ def cluster_migrate_keys_to_server(node_rs , host , port , *keys  ):
 # 		return False;
 # 	for i in range(fromSlot ,toSlot ) :
 # 		clusternodes = rs.redisClient.cluster('addslots' , );
+
+
+
+# 根据 cluster slots 结果计算 slots 比例
+def getSlotsCountInfo(redis_client , cluster_slots , host):
+	if len(host) == 0:
+		host = redis_client.host;
+
+	cluster_slots_count = [];
+	clusterInfo = getClusterInfo(redis_client);
+	# assigned ok fail
+	total = 16384;
+	unassigned = total - int(clusterInfo['cluster_slots_assigned']);
+
+	# 计算未分配的槽位区域
+	unassignedSlotsInfo = '';
+	unassignedSlotsStart = 16383;
+	unassignedSlotsEnd = 0;
+	unassignedSlotsLen = 0;
+	if cluster_slots and len(cluster_slots) > 0 :
+		# 理论上有  n + 1 段槽位未分配
+		unassignedSlotsLen = len(cluster_slots) + 1;
+		sorted_cluster_slots = cluster_slots;
+		# 冒泡排序
+		for i in range(len(sorted_cluster_slots) - 1):
+			for j in range(len(sorted_cluster_slots) - i - 1):
+				formerOne = sorted_cluster_slots[j];
+				former_from_slots = formerOne['from_slots'];
+				former_from_slots = int(former_from_slots)
+
+				latterOne = sorted_cluster_slots[j + 1];
+				latter_from_slots = latterOne['from_slots'];
+				latter_from_slots = int(latter_from_slots)
+				if former_from_slots > latter_from_slots :
+					temp = latterOne;
+					sorted_cluster_slots[j + 1] = formerOne;
+					sorted_cluster_slots[j] = temp;
+
+		# 计算未分配槽位
+		if len(cluster_slots) > 1 :
+			for i in range(len(cluster_slots) - 1):
+				former_cluster_slot_item = cluster_slots[i];
+				latter_cluster_slot_item = cluster_slots[i + 1];
+				# 第一个节点
+				former_to_slots = former_cluster_slot_item['to_slots'];
+				former_from_slots = former_cluster_slot_item['from_slots'];
+				latter_to_slots = latter_cluster_slot_item['to_slots'];
+				latter_from_slots = latter_cluster_slot_item['from_slots'];
+
+				former_to_slots = int(former_to_slots)
+				former_from_slots = int(former_from_slots)
+				latter_to_slots = int(latter_to_slots)
+				latter_from_slots = int(latter_from_slots)
+
+
+				# 开头
+				if i == 0 :
+					if former_from_slots > 0:
+						unassignedSlotsStartFrom = 0;
+						unassignedSlotsStartTo = former_from_slots - 1;
+						unassignedSlotsInfo += str(unassignedSlotsStartFrom) + '-' + str(unassignedSlotsStartTo) + ' / ';
+
+
+				unassignedSlotsStartFrom = former_to_slots + 1;
+				unassignedSlotsStartTo = latter_from_slots - 1;
+				unassignedSlotsInfo += str(unassignedSlotsStartFrom) + '-' + str(unassignedSlotsStartTo) + ' / ';
+
+				# 结尾
+				if i == (len(cluster_slots) - 2 ) :
+					if latter_to_slots < 16383:
+						unassignedSlotsStartFrom = latter_to_slots + 1;
+						unassignedSlotsStartTo = 16383;
+						unassignedSlotsInfo += str(unassignedSlotsStartFrom) + '-' + str(
+							unassignedSlotsStartTo) + ' / ';
+			if len(unassignedSlotsInfo) > 0:
+				unassignedSlotsInfo = unassignedSlotsInfo[0 : len(unassignedSlotsInfo) - 2]
+
+
+		for cluster_slot_item in cluster_slots:
+			nodeId = cluster_slot_item['node_id'];
+			name = cluster_slot_item['node_name'];
+			nameArr = name.split(':');
+			# 自己一个的集群
+			if len(nameArr[0]) == 0:
+				name =  host + name;
+
+			name = name.replace('127.0.0.1' , host);
+			# 已经计算过节点
+			slot_count = 0;
+			to_slots = cluster_slot_item['to_slots'];
+			from_slots = cluster_slot_item['from_slots'];
+			to_slots = int(to_slots)
+			from_slots = int(from_slots)
+
+			slot_dis = 0;
+			if from_slots == to_slots :
+				slot_dis = 1;
+			else:
+				slot_dis = cluster_slot_item['to_slots'] - cluster_slot_item['from_slots'] + 1;
+
+			new_slot_count_item = {};
+			containsSlots = False;
+			# 已经存在就不在再插入
+			slotsInfo = str(from_slots) + '-' + str(to_slots);
+			for slot_count_item in cluster_slots_count:
+				if slot_count_item['nodeId'] == nodeId :
+					containsSlots = True;
+					old_slot_count = slot_count_item['slot_count'];
+					slot_count = old_slot_count + slot_dis;
+					slotsInfo = slot_count_item['slotsInfo'] + ' | ' + slotsInfo;
+					slot_count_item['slotsInfo'] = slotsInfo;
+					slot_count_item['slot_count'] = slot_count;
+
+			if not containsSlots :
+				slot_count = slot_dis;
+				new_slot_count_item['nodeId'] = nodeId;
+				new_slot_count_item['slotsInfo'] = slotsInfo;
+				new_slot_count_item['slot_count'] = slot_count;
+				new_slot_count_item['nodeName'] = name;
+				cluster_slots_count.append(new_slot_count_item);
+
+
+	new_slot_count_item = {};
+	new_slot_count_item['nodeId'] = '';
+	new_slot_count_item['slot_count'] = unassigned;
+	new_slot_count_item['nodeName'] = 'unassigned';
+	new_slot_count_item['slotsInfo'] = unassignedSlotsInfo;
+	cluster_slots_count.append(new_slot_count_item);
+
+
+	new_fail_item = {};
+	new_fail_item['nodeId'] = '';
+	new_fail_item['slot_count'] = clusterInfo['cluster_slots_fail'];
+	new_fail_item['nodeName'] = 'fail';
+	new_fail_item['slotsInfo'] = '';
+	cluster_slots_count.append(new_fail_item);
+
+	return cluster_slots_count;
+
 

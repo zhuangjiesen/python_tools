@@ -10,6 +10,7 @@ def getThisPythonFileName(frame):
     file_type = '.py';
     file_name = frame.f_code.co_filename;
     file_name = file_name.split("\\")[-1];
+    file_name = file_name.split("/")[-1];
     type_index = file_name.find(file_type);
     file_name = file_name[0 : type_index];
     # print('file_name : '  , file_name)

@@ -25,6 +25,7 @@ from .controller import redisCluster
 from .controller import redisConf
 from .controller import dataDictionary
 from .controller import test
+from .controller import redisOpr
 urlpatterns = [
     url(r'^index/', index.route),
     url(r'^user/', user.route),
@@ -34,4 +35,5 @@ urlpatterns = [
     url(r'^redisConf/', redisConf.route),
     url(r'^dataDictionary/', dataDictionary.route),
     url(r'^test/', test.route),
+    url(r'^redisOpr/', redisOpr.route),
 ]

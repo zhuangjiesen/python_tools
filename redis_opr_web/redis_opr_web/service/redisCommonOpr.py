@@ -462,3 +462,52 @@ def saveAppRedisAndGetId(app_redis):
     return app_id;
 
 
+
+
+# 删除节点所有的槽位
+def delAllClusterNodeSlots(name , requirepass):
+    host = name.split(':')[0]
+    port = name.split(':')[1]
+
+    server_item = {};
+    server_item['host'] = host;
+    server_item['port'] = port;
+    server_item['requirepass'] = requirepass;
+
+    server_list = [];
+    server_list.append(server_item);
+    # 检测连接
+    testResult = testRedisClientListConn(server_list);
+    print(" testResult : ", testResult.toDict())
+    if not testResult.success:
+        ajaxResp = AjaxResponse();
+        ajaxResp.success = False;
+        ajaxResp.msg = testResult.msg;
+        return ajaxResp;
+    else:
+        # 成功连接
+        print(' testConnection 成功 .')
+        redis_client_list = testResult.result['redis_client_list'];
+        redis_client = redis_client_list[0];
+        clusterSlots = RedisCluster.getClusterSlots(redis_client);
+        if clusterSlots and len(clusterSlots) > 0:
+            for clusterSlotItem in clusterSlots:
+                node_name = clusterSlotItem['node_name'];
+                if name == node_name:
+                    from_slots = int(clusterSlotItem['from_slots']);
+                    to_slots = int(clusterSlotItem['to_slots']);
+                    if from_slots == to_slots:
+                        RedisCluster.delSlots(redis_client, from_slots);
+                    else:
+                        for slot in range(from_slots, to_slots + 1):
+                            result = RedisCluster.delSlots(redis_client, slot);
+                            if not result:
+                                ajaxResp = AjaxResponse();
+                                ajaxResp.success = False;
+                                ajaxResp.msg = '删除失败';
+                                return ajaxResp;
+    return True;
+
+
+
+

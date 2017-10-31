@@ -1,0 +1,858 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+	<title>redis集群操作</title>
+
+    {% include 'oprpage/html/baseHeader.html' %}
+<style type="text/css">
+body{
+	padding: 10px;
+}
+#pic1{
+    width:400px;
+    height:400px;
+    margin: 20px auto;
+}
+
+</style>
+</head>
+<body>
+<h1>redis集群操作</h1>
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">集群状态:</h3>
+  </div>
+  <div class="panel-body">
+       <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>状态名</th>
+                  <th>状态值</th>
+                  <th>描述</th>
+                </tr>
+              </thead>
+              <tbody id="clusterStatusTable">
+              </tbody>
+        </table>
+  </div>
+</div>
+
+
+<div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">Instances Info</div>
+  <div class="panel-body">
+    <div class="row base-margin" id="query">
+        <div class="form-group btn-right">
+            <button type="button" style="margin-left: 20px;margin-right: 20px;" class="btn btn-primary" id="addBtn"  >新增节点</button>
+            <button type="button" id="autoAssigned" class="btn btn-primary">
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                自动分配槽
+            </button>
+            <button type="button" id="clusterAllReset" class="btn btn-primary">
+                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                集群重置
+            </button>
+        </div>
+    </div>
+    <table id="table"></table>
+  </div>
+</div>
+
+
+
+<div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">槽分配情况:</div>
+  <div class="panel-body">
+    <p>
+    </p>
+  </div>
+
+
+    <div id="pic1" ></div>
+
+</div>
+
+
+<div id="myModal" class="modal fade" tabindex="-1" >
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content" style="padding: 20px;">
+        {% include 'oprpage/html/redisCluster/redisClusterForm.html' %}
+
+    </div>
+  </div>
+</div>
+
+
+<div id="instancesDetailModal" class="modal fade" tabindex="-1"  role="dialog"  aria-labelledby="myLargeModalLabel" >
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content" style="padding: 20px;" >
+       <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>状态名</th>
+                  <th>状态值</th>
+                  <th>描述</th>
+                </tr>
+              </thead>
+              <tbody id="instancesDetailTable">
+              </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+{% include 'oprpage/html/redisCluster/redisSlotsModal.html' %}
+{% include 'oprpage/html/redisCluster/redisClusterNodeForm.html' %}
+
+
+
+<input type="hidden" id="requirepass" >
+
+</body>
+<script type="text/template" id="clusterStatusTableTmp" >
+    <tr>
+      <td  >$statusName</td>
+      <td >$statusValue</td>
+      <td >$statusDesc</td>
+    </tr>
+</script>
+
+<script type="text/javascript">
+var instancesList = null;
+var instancesTable = null;
+//槽位已经分配完
+var has_cluster_slots_assigned = true;
+// 未分配槽位信息
+var cluster_slots_unassigned_info = '';
+var slotsInfoPic = null;
+var _clusterStatusInfo = null;
+$(document).ready(function () {
+
+
+    $('#clusterAllReset').on('click', function () {
+        var appForm = formSerializeArrayToJsonByItem($('#appForm'));
+        $.post("{{ contextPath }}/redisOpr/resetAllClusterNode.do", appForm ,
+                  function(data){
+                        console.log(JSON.stringify(data)); // John
+                      alert(data.msg);
+                      if (data.success) {
+                          reloadPage();
+                      }
+                  }, "json");
+
+    });
+
+
+    $('#addBtn').on('click', function () {
+       $('#newClusterNodeModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+
+        $('#redisNewClusterNodeBtn').off('click')
+        $('#redisNewClusterNodeBtn').on('click', function (e) {
+            e.preventDefault();
+            var instancesItem = null;
+            if (instancesList && instancesList.length > 0) {
+                instancesItem = instancesList[0];
+                var originNodeId = instancesItem.nodeId;
+                var appForm = formSerializeArrayToJsonByItem($('#newClusterNodeForm'));
+                if (!appForm) {
+                    return ;
+                }
+                appForm.originNodeId = originNodeId;
+                appForm.originName = instancesItem.name;
+
+                $.post("{{ contextPath }}/redisOpr/testRedisClusterNewNode.do", appForm ,
+                  function(data){
+                        console.log(JSON.stringify(data)); // John
+                      alert(data.msg);
+                      if (data.success) {
+
+                          $('#newClusterNodeModal').modal('hide')
+                          reloadPage();
+
+
+                      }
+                  }, "json");
+
+            }
+
+
+        });
+
+    });
+
+
+    $('#migrateSlots').on('click', function () {
+       $('#migrateSlotsModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+    });
+
+    $('#migrateSlotsModalSbmBtn').on('click', function () {
+        var migrateSlotsModalForm = formSerializeArrayToJsonByItem($('#migrateSlotsModalForm'));
+        if (!migrateSlotsModalForm) {
+            alert('表单填写出错!');
+            return ;
+        }
+        migrateSlotsModalForm.requirepass = $('#requirepass').val();
+        console.log('migrateSlotsModalForm : ' + JSON.stringify(migrateSlotsModalForm))
+        $.post("{{ contextPath }}/redisOpr/migrateClusterSlots.do", migrateSlotsModalForm ,
+          function(data){
+            alert(data.msg);
+            if (data.success) {
+                $('#migrateSlotsModal').modal('hide')
+                reloadPage()
+            }
+          }, "json");
+
+
+    });
+    $('#autoAssigned').on('click', function () {
+        var allSelections = $('#table').bootstrapTable('getAllSelections');
+        if (allSelections && allSelections.length > 0) {
+            for (var i = 0 ; i < allSelections.length ; i ++) {
+                var selectionItem = allSelections[i];
+                if (selectionItem.role != 'master') {
+                    alert(selectionItem.name + '节点不是master节点');
+                    return;
+                }
+            }
+        } else {
+            alert('请选中至少一个master节点');
+            return ;
+        }
+
+        //TODO 自动分配槽位
+       $('#autoAssignedModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+
+        var selectionNames = '';
+        for (var i = 0 ; i < allSelections.length ; i ++) {
+            var selectionItem = allSelections[i];
+            selectionNames += selectionItem.name;
+            selectionNames += ',';
+            $('#autoAssignedUnssignedSlotsInfoNodesList').append('<li class="list-group-item">' + selectionItem.name + '</li>');
+        }
+        if (selectionNames.length > 0) {
+            selectionNames = selectionNames.substring(0 , selectionNames.length - 1);
+        }
+
+        $('#autoAssignedUnssignedSlotsInfoNodesNames').val(selectionNames);
+        $('#autoAssignedUnssignedSlotsInfo').html(cluster_slots_unassigned_info);
+        $('#autoAssignedUnssignedSlotsInfoCount').html((16384 - parseInt(_clusterStatusInfo.cluster_slots_assigned)));
+
+        //参数
+        $('#autoAssignedUnssignedSlotsInfoValue').val(cluster_slots_unassigned_info);
+        $('#autoAssignedUnssignedSlotsInfoCountValue').val((16384 - parseInt(_clusterStatusInfo.cluster_slots_assigned)));
+        $('#autoAssignedModal').on('hidden.bs.modal', function (e) {
+            $('#autoAssignedUnssignedSlotsInfo').html('');
+            $('#autoAssignedUnssignedSlotsInfoCount').html('');
+
+           $('#autoAssignedUnssignedSlotsInfoNodesList').html('');
+           $('#autoAssignedUnssignedSlotsInfoNodesNames').val('');
+           $('#autoAssignedUnssignedSlotsInfoCountValue').val('');
+           $('#autoAssignedUnssignedSlotsInfoValue').val('');
+        })
+
+        //提交按钮
+        $('#autoAssignedSlotsModalSbmBtn').off('click');
+        $('#autoAssignedSlotsModalSbmBtn').on('click' , function (e) {
+            e.preventDefault();
+            //选中节点
+            var autoAssignedUnssignedSlotsInfoNodesNames = $('#autoAssignedUnssignedSlotsInfoNodesNames').val();
+
+            var autoAssignedUnssignedSlotsInfoValue = $('#autoAssignedUnssignedSlotsInfoValue').val();
+            var autoAssignedUnssignedSlotsInfoCountValue = $('#autoAssignedUnssignedSlotsInfoCountValue').val();
+
+            var requirepass = $('#requirepass').val();
+
+            var params = {};
+            params.nodeNames = autoAssignedUnssignedSlotsInfoNodesNames;
+            params.autoAssignedUnssignedSlotsInfoValue = autoAssignedUnssignedSlotsInfoValue;
+            params.autoAssignedUnssignedSlotsInfoCountValue = autoAssignedUnssignedSlotsInfoCountValue;
+            params.requirepass = requirepass;
+            $.post("{{ contextPath }}/redisOpr/autoAllocClusterSlots.do", params ,
+              function(data){
+                alert(data.msg);
+                if (data.success) {
+                    $('#autoAssignedModal').modal('hide')
+                    reloadPage()
+                }
+              }, "json");
+
+
+        });
+
+
+
+
+    });
+    $('#allocUnassigned').on('click', function () {
+       $('#allocUnassignedModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+    });
+   $('#myModal').modal({
+      keyboard: false ,
+       backdrop: 'static' ,
+       show : true
+    })
+
+    $('#redisInstBtn').on('click', function () {
+        var appForm = formSerializeArrayToJsonByItem($('#appForm'));
+        $.post("{{ contextPath }}/redisOpr/testRedisCluster.do", appForm ,
+          function(data){
+                console.log(JSON.stringify(data)); // John
+              if (data.success) {
+                var requirepass = $('input[name="requirepass"]').val();
+                $('#requirepass').val(requirepass);
+                debugger
+                $('#myModal').modal('hide');
+                var slotsInfo = data.result.slotsInfo;
+                var instancesStatus = data.result.instancesStatus;
+                var clusterStatus = data.result.clusterStatus;
+                //判断是否能分配槽位 槽位是否已经分配完
+                var clusterStatusInfo = clusterStatus.clusterStatusInfo || null;
+                if (clusterStatusInfo && clusterStatusInfo.cluster_slots_assigned && parseInt(clusterStatusInfo.cluster_slots_assigned) < 16384 ) {
+                    has_cluster_slots_assigned = false;
+                } else {
+                    has_cluster_slots_assigned = true;
+                }
+                _clusterStatusInfo = clusterStatusInfo;
+                initClusterStatus(clusterStatusInfo);
+                // 初始化饼图
+                initPieTable (slotsInfo);
+                initInstancesTable(instancesStatus.instancesInfo || null);
+                instancesList = instancesStatus.instancesInfo;
+              } else {
+                  alert(data.msg);
+              }
+          }, "json");
+    })
+});
+
+//重新加载页面
+function reloadPage(){
+    instancesList = null;
+    //槽位已经分配完
+    has_cluster_slots_assigned = true;
+    // 未分配槽位信息
+    cluster_slots_unassigned_info = '';
+    _clusterStatusInfo = null;
+    refreshPage();
+    $('#redisInstBtn').click();
+
+}
+
+//清空页面
+function refreshPage(){
+    $('#clusterStatusTable').html('');
+    $('#instancesDetailTable').html('');
+    //$('#pic1').html('');
+    if (slotsInfoPic) {
+        slotsInfoPic.dispose()
+    }
+}
+
+function appendClusterStatusTable( statusName , statusValue , statusDesc ) {
+    var clusterStatusTableTmp = $('#clusterStatusTableTmp').html();
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusName' , statusName || '');
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusValue' , statusValue || '');
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusDesc' , statusDesc || '');
+    $('#clusterStatusTable').append(clusterStatusTableTmp);
+}
+
+
+function appendInstanceDetailTable( statusName , statusValue , statusDesc ) {
+    var clusterStatusTableTmp = $('#clusterStatusTableTmp').html();
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusName' , statusName || '');
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusValue' , statusValue || '');
+    clusterStatusTableTmp = clusterStatusTableTmp.replace('$statusDesc' , statusDesc || '');
+    $('#instancesDetailTable').append(clusterStatusTableTmp);
+}
+
+function initClusterStatus(clusterStatusInfo){
+    if (clusterStatusInfo) {
+        for (key in clusterStatusInfo) {
+            var desc = null;
+            appendClusterStatusTable (key , clusterStatusInfo[key]);
+        }
+    }
+}
+
+function initPieTable (slotsInfo){
+    var cluster_slots_count = slotsInfo.cluster_slots_count;
+    if (cluster_slots_count && cluster_slots_count.length > 0) {
+        for (var i = 0 ; i < cluster_slots_count.length ; i ++) {
+            var cluster_slots_count_item = cluster_slots_count[i];
+            var nodeName = cluster_slots_count_item.nodeName;
+            if (nodeName == 'unassigned') {
+                var slotsInfo = cluster_slots_count_item.slotsInfo;
+                if (slotsInfo && slotsInfo.length > 0) {
+                    cluster_slots_unassigned_info = slotsInfo;
+                }
+                break;
+            }
+        }
+    } else {
+        return ;
+    }
+    var legendData = [];
+    for (var i = 0 ; i < cluster_slots_count.length ; i ++) {
+        var slots_count_item = cluster_slots_count[i];
+        var nodeName = slots_count_item.nodeName;
+        legendData.push(nodeName);
+    }
+
+    var seriesData = [];
+    for (var i = 0 ; i < cluster_slots_count.length ; i ++) {
+        var slots_count_item = cluster_slots_count[i];
+        var nodeName = slots_count_item.nodeName;
+        var slot_count = slots_count_item.slot_count;
+
+        var seriesItem = {};
+        seriesItem.name = nodeName;
+        seriesItem.value = slot_count;
+        seriesData.push(seriesItem);
+    }
+
+
+    slotsInfoPic = echarts.init(document.getElementById('pic1'));
+    option = {
+        title : {
+    {#        text: '某站点用户访问来源',#}
+    {#        subtext: '纯属虚构',#}
+            x:'center'
+        },
+        tooltip : {
+            trigger: 'item',
+            formatter: "{a} <br/>{b} : {c} ({d}%)"
+        },
+        legend: {
+            orient: 'vertical',
+            left: 'left',
+            data: legendData
+        },
+        series : [
+            {
+                name: 'cluster slots',
+                type: 'pie',
+                radius : '55%',
+                center: ['50%', '60%'],
+                data:seriesData
+                ,
+                itemStyle: {
+                    emphasis: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }
+        ]
+    };
+    slotsInfoPic.setOption(option);
+}
+
+
+
+
+function initInstancesTable(data){
+{#    var url = "http://10.11.165.101:8000/test/boostrapTable.do";#}
+    if (instancesTable) {
+        $('#table').bootstrapTable('removeAll');
+        setTimeout(function () {
+            debugger
+            for (var i = 0 ; i < data.length ; i ++) {
+                var row = data[i];
+                var params = {};
+                params.index = i;
+                params.row = row;
+                $('#table').bootstrapTable('insertRow', params);
+            }
+        } , 300);
+    } else {
+         instancesTable = $('#table').bootstrapTable({
+            method:'POST',
+            dataType:'json',
+            data : data ,
+            cache: false,
+            sidePagination: "server",           //分页方式：client客户端分页，server服务端分页（*）
+    {#        url:url,#}
+             height: 300,
+    //        width:$(window).width(),
+            singleSelect : false,
+            clickToSelect : true,
+            selectItemName : 'id',
+            queryParams : {'name' : 'zhuangjiesen'} ,
+            uniqueId : "id",                     //每一行的唯一标识，一般为主键列
+            responseHandler: function (res) {
+                return res;
+            },
+            columns: [{
+                checkbox: true
+            },
+                {
+                    field : 'address',
+                    title : 'Address',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#' data-type='detail' onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                }, {
+                    field : 'role',
+                    title : 'Role',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#'  data-type='replicationDetail'  onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                }, {
+                    field : 'version',
+                    title : 'Version',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        return value;
+                    }
+                }, {
+                    field : 'memUsed',
+                    title : 'Mem Used',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#'   data-type='memDetail'   onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                }, {
+                    field : 'cpuInfo',
+                    title : 'CPU',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#'  data-type='cpuDetail' onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                }, {
+                    field : 'dbsize',
+                    title : '键总数',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return value;
+                    }
+                }, {
+                    field : 'slowLogLength',
+                    title : '慢查询',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#'  data-type='slowLogDetail'  onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                },  {
+                    field : 'slotsInfo',
+                    title : '槽位分配',
+                    align : 'center',
+                    formatter : function (value, row, index){
+                        var name = row.name;
+                        return "<a href='#'  data-type='slosInfoDetail' onclick='openDetail(this);' class='link modify-btn' data-name='" + name + "' title='" + name + "'>" + value + "</a>";
+                    }
+                },  {
+                    field : 'operation',
+                    title : '操作',
+                    formatter : function (value, row, index){
+                        //TODO 槽位位置
+                        var html = '';
+                        if (row.role == 'master' ) {
+                            // 分配槽位
+                            if (!has_cluster_slots_assigned) {
+                                 html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="addSlotsToClusterNode(this);"  type="button" class="btn btn-danger">槽位分配</button>';
+                            }
+                            // 槽位迁移
+                            if (row.slotsInfo && row.slotsInfo.length > 0 ) {
+                                if (_clusterStatusInfo && _clusterStatusInfo.cluster_state == 'ok') {
+                                    html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="migrateSlots(this);"  type="button" class="btn btn-danger">槽位迁移</button>';
+                                } else {
+                                    html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="deleteAllSlots(this);"  type="button" class="btn btn-danger">槽位清除</button>';
+                                }
+                            } else {
+                                //还没有槽位管理可以进行下线处理，即删除
+                                html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="doForgetclusterNode(this);"  type="button" class="btn btn-danger">节点删除</button>';
+                                html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="addClusterSlaveNode(this);"  type="button" class="btn btn-danger">设为从节点</button>';
+                            }
+                            //还有槽位未分配
+
+                        } else {
+                            html += '<button data-slotsinfo="' + row.slotsInfo  + '" data-name="' + row.name  + '" data-nodeid="' + row.nodeId + '" onclick="doForgetclusterNode(this);"  type="button" class="btn btn-danger">节点删除</button>';
+                        }
+                        //html = '<button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span>down</button>';
+                        return html;
+                    }
+                }]
+        });
+    }
+
+
+
+
+}
+
+
+
+
+//清除槽位
+function deleteAllSlots (item) {
+    var nodeId = $(item).attr('data-nodeid');
+    var name = $(item).attr('data-name');
+    var requirepass = $('#requirepass').val();
+    var params = {};
+    params.name = name ;
+    params.requirepass = requirepass;
+    $.post("{{ contextPath }}/redisOpr/deleteAllSlots.do", params ,
+      function(data){
+        alert(data.msg);
+        if (data.success) {
+            reloadPage()
+        }
+      }, "json");
+
+}
+
+//设为从节点
+function addClusterSlaveNode(item){
+    var nodeId = $(item).attr('data-nodeid');
+    var name = $(item).attr('data-name');
+
+
+     $('input[name="newClusterSlaveNodeNameValue"]').val(name);
+    $('#newClusterSlaveNodeName').html(name);
+    $('#newClusterMasterNodeName').html('');
+    if (instancesList) {
+        for (var i = 0 ; i < instancesList.length ; i++) {
+            var instancesItem = instancesList[i];
+            if (instancesItem.nodeId != nodeId && instancesItem.role == 'master') {
+                $('#newClusterMasterNodeName').append('<option value="' + instancesItem.name + '" >' + instancesItem.name + '</option>');
+            }
+        }
+    }
+    $('#newClusterSlaveNodeModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+    $('#newClusterSlaveNodeModal').on('hidden.bs.modal', function (e) {
+       var inputs = $('#migrateSlotsModalForm').find('input');
+       for (var i = 0 ; i < inputs.length ; i ++) {
+           $(inputs[i]).val('');
+       }
+        $('input[name="newClusterSlaveNodeNameValue"]').val('');
+        $('#newClusterMasterNodeName').html('');
+    });
+
+
+        //提交按钮
+    $('#redisNewClusterSlaveNodeBtn').off('click');
+    $('#redisNewClusterSlaveNodeBtn').on('click', function (e) {
+        e.preventDefault();
+        var newClusterSlaveNodeForm = formSerializeArrayToJsonByItem($('#newClusterSlaveNodeForm'));
+        if (!newClusterSlaveNodeForm) {
+            alert('表单填写出错!');
+            return ;
+        }
+        newClusterSlaveNodeForm.requirepass = $('#requirepass').val();
+        console.log('allocSlotsModalForm : ' + JSON.stringify(newClusterSlaveNodeForm))
+        $.post("{{ contextPath }}/redisOpr/addClusterSlaveNode.do", newClusterSlaveNodeForm ,
+          function(data){
+            alert(data.msg);
+            if (data.success) {
+                $('#newClusterSlaveNodeModal').modal('hide')
+                reloadPage()
+            }
+          }, "json");
+    });
+
+
+}
+
+
+function migrateSlots (item) {
+    var nodeId = $(item).attr('data-nodeid');
+    var name = $(item).attr('data-name');
+    var slotsInfo = $(item).attr('data-slotsinfo');
+    $('input[name="migrateFromNodeId"]').val(nodeId);
+    $('input[name="migrateFromNodeName"]').val(name);
+
+    $('#migrateFromNodeName').html(name);
+
+    $('#migrateSlotFromNodeSlotsInfo').html(slotsInfo);
+
+
+    $('#migrateToNodeName').html('');
+    if (instancesList) {
+        for (var i = 0 ; i < instancesList.length ; i++) {
+            var instancesItem = instancesList[i];
+            if (instancesItem.nodeId != nodeId && instancesItem.role == 'master') {
+                $('#migrateToNodeName').append('<option value="' + instancesItem.name + '" >' + instancesItem.name + '</option>');
+            }
+        }
+    }
+    $('#migrateSlotsModal').modal({
+          keyboard: false ,
+           backdrop: 'static' ,
+           show : true
+        })
+    $('#migrateSlotsModal').on('hidden.bs.modal', function (e) {
+       var inputs = $('#migrateSlotsModalForm').find('input');
+       for (var i = 0 ; i < inputs.length ; i ++) {
+           $(inputs[i]).val('');
+       }
+       $('#migrateFromNodeName').html('');
+       $('#migrateSlotFromNodeSlotsInfo').html('');
+    })
+
+
+}
+
+
+//分配槽位
+function addSlotsToClusterNode(item ){
+    var nodeId = $(item).attr('data-nodeid');
+    var name = $(item).attr('data-name');
+    $('input[name="allocNodeName"]').val(name);
+    $('#allocNodeNameFont').html(name);
+    $('#allocUnssignedSlotsInfo').html(cluster_slots_unassigned_info);
+
+    $('#allocUnassignedModal').modal({
+      keyboard: false ,
+       backdrop: 'static' ,
+       show : true
+    })
+
+    $('#allocUnassignedModal').on('hidden.bs.modal', function (e) {
+       var inputs = $('#migrateSlotsModalForm').find('input');
+       for (var i = 0 ; i < inputs.length ; i ++) {
+           $(inputs[i]).val('');
+       }
+       $('#allocNodeNameFont').html('');
+       $('#allocUnssignedSlotsInfo').html('');
+    })
+
+    //提交按钮
+    $('#allocSlotsModalSbmBtn').off('click');
+    $('#allocSlotsModalSbmBtn').on('click', function (e) {
+        e.preventDefault();
+        var allocSlotsModalForm = formSerializeArrayToJsonByItem($('#allocSlotsModalForm'));
+        if (!allocSlotsModalForm) {
+            alert('表单填写出错!');
+            return ;
+        }
+        allocSlotsModalForm.requirepass = $('#requirepass').val();
+        console.log('allocSlotsModalForm : ' + JSON.stringify(allocSlotsModalForm))
+        $.post("{{ contextPath }}/redisOpr/addSlotsToClusterNode.do", allocSlotsModalForm ,
+          function(data){
+            alert(data.msg);
+            if (data.success) {
+                $('#allocUnassignedModal').modal('hide')
+                reloadPage()
+            }
+          }, "json");
+    });
+
+}
+
+//节点下线
+function doForgetclusterNode(item) {
+    alert('节点下线');
+    var nodeId = $(item).attr('data-nodeid');
+    var name = $(item).attr('data-name');
+    var requirepass = $('#requirepass').val();
+    var params = {};
+    params.name = name ;
+    params.nodeId = nodeId ;
+    params.requirepass = requirepass;
+    $.post("{{ contextPath }}/redisOpr/forgetClusterNode.do", params ,
+          function(data){
+                console.log(JSON.stringify(data)); // John
+                if (data.success) {
+                    if (instancesList && instancesList.length > 1){
+                        var host = null;
+                        var port = null;
+                        var hasNode = false;
+                        for (var i = 0; i < instancesList.length ; i ++) {
+                            var instancesItem = instancesList[i];
+                            if (instancesItem.nodeId == nodeId){
+                                hasNode = true;
+                            } else {
+                                if (!host) {
+                                    var name = instancesItem.name;
+                                    host = name.split(':')[0]
+                                    port = name.split(':')[1]
+                                }
+                            }
+                        }
+                        //删掉的节点是当时添加的节点
+                        if (hasNode) {
+                            $('#host').val(host);
+                            $('#port').val(port);
+                        }
+                        reloadPage();
+                    } else {
+                        alert('重新刷新');
+                    }
+                }
+          }, "json");
+
+
+
+
+}
+
+function openDetail(item){
+    var dataType = $(item).attr('data-type');
+    var name = $(item).attr('data-name');
+    var requirepass = $('#requirepass').val();
+    var params = {};
+    params.name = name ;
+    params.requirepass = requirepass;
+    params.dataType = dataType;
+    $.post("{{ contextPath }}/redisOpr/getRedisInstanceDetail.do", params ,
+          function(data){
+                console.log(JSON.stringify(data)); // John
+                if (data.success) {
+                    $('#instancesDetailTable').html('');
+                    var info = data.result.info;
+                    if (info) {
+                        for (key in info) {
+                            appendInstanceDetailTable(key , JSON.stringify(info[key]) );
+                        }
+                    }
+                    $('#instancesDetailModal').modal({
+                      keyboard: true ,
+                       show : true
+                    })
+                }
+          }, "json");
+
+    // detail
+    // replicationDetail
+    // memDetail
+    // cpuDetail
+    // slowLogDetail
+    // slosInfoDetail
+
+
+}
+
+
+</script>
+</html>

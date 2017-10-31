@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+	<title>无标题</title>
+
+<link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="../css/bootstrap-theme.min.css">
+<link rel="stylesheet" type="text/css" href="../css/app.css">
+<script src="../js/jquery-1.12.0.js"  ></script>
+
+<script src="../js/bootstrap.min.js"  ></script>
+<script src="../js/dragsun-plugins.js"  ></script>
+
+<style type="text/css">
+body{
+	padding: 10px;
+}
+
+</style>
+</head>
+<body>
+<h1>Boostrap 项目测试</h1>
+
+
+<h3>进度条</h3>
+<button id="loadingBtn">打开进度条</button>
+<button id="modelClosedBtn">关闭模态框</button>
+
+
+<div id="layer" style="height: 300px;width: 300px;background: darkgrey;">
+    <h4>遮罩区域</h4>
+
+</div>
+<script type="text/template" id="modalTemplate" >
+    <div class="loading">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</script>
+
+
+
+</body>
+<script type="text/javascript">
+//自定义模态框组件
+var DragsunLoading = function (dom , options) {
+    var _containerId = options.containerId || 'body';
+    var _containerDom = null;
+    var text = '加载中...';
+    if (options.text) {
+        text = options.text;
+    }
+    if (_containerId == 'body') {
+        _containerDom = $( _containerId);
+    } else {
+        _containerDom = $('#' + _containerId);
+    }
+
+    var _height = options.height || ''
+    var _width = options.width || ''
+
+    var _timeStamp = new Date().getTime();
+
+    var modalId = 'modelTmp';
+    var contentStyle = 'width: 150px;margin-left: auto; margin-right: auto;';
+    contentStyle += 'height:' + _height + ';';
+
+    var title = options.title || '';
+
+    var html = '';
+    html += '<div id="$modalId" class="modal fade in" tabindex="-1" >';
+    html = html.replace("$modalId", modalId );
+
+    html += '<div class="modal-content" style="$model-content-style">';
+    html = html.replace("$model-content-style", contentStyle );
+    html += '<div class="modal-body" style="background-color: #eeeeea; padding: 15px;position: relative;"> ';
+    html += '<div class="loading"  style="display: inline-block;" >'
+    html += '<span></span>';
+    html += '<span></span>';
+    html += '<span></span>';
+//    html += '<span></span>';
+//    html += '<span></span>';
+    html += '</div>';
+
+    html += '<div style="font-weight:bold; margin-left:10px ;height:18px;line-height:18px; text-align:center;display: inline-block;" >';
+    html +=  text;
+    html += '</div> ';
+    html += '</div> ';
+    html += '</div>';
+    html += '</div>';
+//        alert(222 + ' html : ' + html);
+    _containerDom.append(html);
+
+    var _modelDom = $('#' + modalId );
+    _modelDom.modal({
+        backdrop: 'static',
+        keyboard: false,//禁止键盘
+        show:false
+    });
+
+    var $clone = _modelDom.clone().css('display','block').appendTo(_containerDom);
+    var top = Math.round(($clone.height() - $clone.find('.modal-content').height()) / 2);
+    top = top > 0 ? top : 0;
+    $clone.remove();
+    _modelDom.find('.modal-content').css("margin-top", top);
+
+
+    _modelDom.on('show.bs.modal', function (e) {
+        // if (iframeId) {
+        //     debugger
+        //     var _bodyWidth = _modelDom.find('.modal-body').width();
+        //     $('#' + iframeId).width(_bodyWidth) ;
+        // }
+    })
+    _modelDom.modal('show');
+
+
+    //页面大小变化是仍然保证模态框水平垂直居中
+    $(window).on('resize', centerModals);
+    function centerModals() {
+        $(modalId).each(function(i) {
+            var $clone = $(this).clone().css('display','block').appendTo('body');
+            var top = Math.round(($clone.height() - $clone.find('.modal-content').height()) / 2);
+            top = top > 0 ? top : 0;
+            $clone.remove();
+            $(this).find('.modal-content').css("margin-top", top);
+        });
+    };
+
+
+    //类的拓展方法
+    $.extend(DragsunLoading.prototype, {
+        close: function () {
+            _modelDom.modal('hide');
+            setTimeout(function () {
+                _modelDom.remove();
+            } , 200);
+        }
+
+    })
+};
+
+
+$.fn.extend({
+    dragsun_loading: function (options) {
+        /*
+         选择项
+         {
+         title : XXX,
+         id : xxx ,
+         html : xxx ,
+         url : xxx ,
+         height: xxx ,
+         width : xxx  ,
+         //成功按钮
+         saveButton: function (){},
+         // 关闭按钮
+         cancelButton : function () {} ,
+         position: xxx ,
+         //父类容器id ,模态框展开的区域 ，默认body
+         containerId : xxx
+
+
+         }
+
+         */
+        return new DragsunLoading( this , options || {});
+    }
+});
+
+function hideLoading(){
+    $("#loading").modal("hide");
+}
+
+var loading = null;
+$('#loadingBtn').on('click' , function(){
+    var html = $('#modalTemplate').html();
+    loading = $('#modelTmp').dragsun_loading()
+    setTimeout(function () {
+        loading.close();
+    } , 3000)
+
+
+});
+
+$('#modelClosedBtn').on('click' , function(){
+
+
+
+});
+
+
+function createModel(){
+
+}
+
+
+
+</script>
+</html>
