@@ -1,18 +1,18 @@
-url£º
+urlï¼š
 http://127.0.0.1:8888/redisOpr/toClusterIndex.do
 
-Ò³ÃæÄ¿Â¼£º
+é¡µé¢ç›®å½•ï¼š
 redis_opr_web\html\oprpage\html\redisCluster
 
-Ç°¶Ë¿ò¼Ü
+å‰ç«¯æ¡†æ¶
 boostrap , boostapTable
 
-¼¯Èº²Ù×÷ºóÌ¨½Ó¿Ú£º
-redis_opr_web\redis_opr_web\controller\redisOpr.py 
+é›†ç¾¤æ“ä½œåå°æ¥å£ï¼š
+redis_opr_web\redis_opr_web\controller\redisOpr.py
 
 
-redis²Ù×÷½Å±¾£º
-Èç¹û²»ÓÃdjangoÆ½Ì¨£¬ÓÃpython½Å±¾Ò²¿ÉÒÔ¶À×Ô²Ù×÷
+redisæ“ä½œè„šæœ¬ï¼š
+å¦‚æœä¸ç”¨djangoå¹³å°ï¼Œç”¨pythonè„šæœ¬ä¹Ÿå¯ä»¥ç‹¬è‡ªæ“ä½œ
 redis_opr_web\redis_opr_web\core
 redis_opr_web\redis_opr_web\service
 
