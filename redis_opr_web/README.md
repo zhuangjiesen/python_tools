@@ -8,6 +8,7 @@
   由于是springboot + mybatis(Java) 开发,框架过于冗余
 2. 由于公司项目做了几个监控平台,又在学习redis,所以决定自己设计一个
 3. 开发过程中促使自己深入了解redis
+4. 熟悉redis集群
 
 
 
