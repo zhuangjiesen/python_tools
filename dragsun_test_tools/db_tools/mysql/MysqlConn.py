@@ -1,7 +1,7 @@
 import pymysql;
 from DBUtils.PooledDB import PooledDB;
 
-from db_tools.mysql import Mysql_Conf  as Config;
+from db_tools.mysql import MysqlConf as Config;
 
 '''
 @功能：PT数据库连接池

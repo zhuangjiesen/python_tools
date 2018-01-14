@@ -1,7 +1,7 @@
 import pymysql
 from DBUtils.PooledDB import PooledDB
 from db_tools.mysql import MysqlConn
-from db_tools.mysql import Mysql_Conf  as Config;
+from db_tools.mysql import MysqlConf as Config;
 from types import FunctionType
 import datetime
 
@@ -12,6 +12,20 @@ mysql_connection = MysqlConn.PTConnectionPool();
 
 def getCursor():
     return mysql_connection.getCursor();
+
+
+# 获取数据库表信息
+def showTableColumns(tableName):
+    sql = ' SHOW COLUMNS FROM ' + tableName;
+    return queryBySql(sql);
+
+
+
+# 获取数据库表 索引信息
+def showTableIndexInfo(tableName):
+    sql = ' SHOW INDEX FROM ' + tableName;
+    return queryBySql(sql);
+
 
 '''
 获取数据库表的列信息
@@ -243,7 +257,11 @@ def executeSql(sql , params_list):
     print('sql : ', sql , '   params : ' , params_list);
     conn = mysql_connection.getConn();
     cursor = conn.cursor()
-    res = cursor.execute(sql , tuple(params_list));
+    tupleParams = None;
+    if params_list :
+        tupleParams = tuple(params_list);
+
+    res = cursor.execute(sql , tupleParams);
     conn.commit();
     return getCursorResult(cursor);
 
