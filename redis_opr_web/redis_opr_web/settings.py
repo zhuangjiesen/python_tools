@@ -56,7 +56,7 @@ MIDDLEWARE = [
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # '.redis_opr_web.core.middleware.AppMiddleWare.BlockedMiddleware',
+    '.redis_opr_web.core.middleware.AppMiddleWare.BlockedMiddleware',
 ]
 
 ROOT_URLCONF = 'redis_opr_web.urls'

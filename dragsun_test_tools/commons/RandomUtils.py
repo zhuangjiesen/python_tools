@@ -1,5 +1,7 @@
 import random
 import string
+import datetime
+
 '''
 随机整数
 
@@ -165,3 +167,28 @@ def getRandomTime():
         time += '0';
     time += second;
     return time;
+
+
+def getRandomTodayTime():
+    today = datetime.date.today();
+
+    today = str(today) + ' ';
+    random_hour = getRandomBetweenNumbers(0, 23);
+    if random_hour < 10:
+        today = str(today) + '0' + str(random_hour);
+    else:
+        today = str(today) + str(random_hour);
+    today = today + ':';
+    random_minite = getRandomBetweenNumbers(0, 59);
+    if random_minite < 10:
+        today = str(today) + '0' + str(random_minite);
+    else:
+        today = str(today) + str(random_minite);
+    today = today + ':';
+    random_second = getRandomBetweenNumbers(0, 59);
+    if random_second < 10:
+        today = str(today) + '0' + str(random_second);
+    else:
+        today = str(today) + str(random_second);
+
+    return today;
