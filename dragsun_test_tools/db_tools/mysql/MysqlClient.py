@@ -35,6 +35,30 @@ def getTableCols(tableName):
     print(' sql : ' , sql);
     return queryBySql(sql);
 
+
+'''
+检查字典类型数据的字段数据库中是否存在字段
+'''
+def hasTableCols(tableName , fieldName):
+    if not fieldName :
+        return None;
+    cols = getTableCols(tableName);
+    # print(' checkTableCols tableName : ' , tableName);
+    is_exist = False
+    for i in range(0 , len(cols) ):
+        col_item = cols[i];
+        column_name = col_item['column_name']
+        # print('column_name : ', column_name)
+        if column_name and column_name == fieldName :
+            is_exist = True;
+            return is_exist;
+    if not is_exist :
+        #不存在这个字段
+        return False;
+
+
+
+
 '''
 检查字典类型数据的字段数据库中是否存在字段
 '''
