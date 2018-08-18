@@ -73,7 +73,8 @@ def route(request , prefix , AppRoute ,route , appRouteInst ):
 '''
 def endAjaxHttpResponse(ajaxResponse):
     print(' endJsonHttpResponse ....')
-    return HttpResponse(json.dumps(ajaxResponse.toDict() , ensure_ascii=False ) ,content_type="application/json;charset=utf-8");
+    response = HttpResponse(json.dumps(ajaxResponse.toDict() , ensure_ascii=False ) ,content_type="application/json;charset=utf-8");
+    return response;
 
 
 
